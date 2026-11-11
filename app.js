@@ -5,7 +5,7 @@
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const store = { get: k => { try { return localStorage.getItem(k) } catch { return null } }, set: (k, v) => { try { localStorage.setItem(k, v) } catch {} } };
 
-  const HOJA_CSV = ""; // URL CSV de la hoja publicada (Archivo > Compartir > Publicar en la web > Formato CSV)
+  const HOJA_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRkaES89LIpeaPSqRxgEX-dhI96OiOYoyrITFnSfqGCXi1S3m_cw_w64JiZ7ukBnMjxtS4b8LbhUxuq/pub?gid=789888059&single=true&output=csv";
   let DATA = [], CURSOS = [], porCi = {}, personas = 0;
   const cls = c => "c" + (CURSOS.indexOf(c) + 1);
   const corto = c => !c ? "Por confirmar" : /^Desarrollo/.test(c) ? "Desarrollo de habilidades" : /^Estimulación/.test(c) ? "Estimulación oportuna" : "Dinamizando";
