@@ -45,13 +45,16 @@
 
   // ---------- Render ----------
   function pintarStats() {
-    const inc = DATA.filter(p => p.faltan.length).length;
+    const inc = DATA.filter(p => p.faltan.length).length, nuevos = DATA.filter(p => p.reciente).length;
     $("stats").innerHTML = [
-      ["Participantes", personas], ["Registros recientes", DATA.filter(p => p.reciente).length], ["Cursos", CURSOS.length],
-      ["Unidades educativas", new Set(DATA.map(p => p.ue).filter(Boolean)).size]
-    ].map(([l, v]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("") +
+      ["Participantes", personas, ""], ["Nuevos registrados", nuevos, "nuevos"], ["Cursos", CURSOS.length, ""],
+      ["Unidades educativas", new Set(DATA.map(p => p.ue).filter(Boolean)).size, ""]
+    ].map(([l, v, id]) => id
+      ? `<button class="stat${S.e === "reciente" ? " activo" : ""}" id="${id}" type="button" aria-pressed="${S.e === "reciente"}"><b>${v}</b><span>${l} · ver</span></button>`
+      : `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("") +
       `<button class="stat alerta" id="inc" type="button"><b>${inc}</b><span>Con datos incompletos · ver</span></button>`;
     $("inc").onclick = () => { S.e = S.e ? "" : "sinCel"; if (S.e) { S.c = S.g = S.u = ""; } sincronizar(); filtrar(); };
+    $("nuevos").onclick = () => { S.e = S.e === "reciente" ? "" : "reciente"; if (S.e) { S.c = S.g = S.u = ""; } sincronizar(); filtrar(); };
   }
   function pintarCursos() {
     const base = [["", "Todos", DATA.length], ...CURSOS.map(c => [c, corto(c), DATA.filter(p => p.curso === c).length])];

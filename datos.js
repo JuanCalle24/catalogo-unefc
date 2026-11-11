@@ -1427,10 +1427,11 @@ const PARTICIPANTES = [
 "deposito": "79584349",
 "monto": 150,
 "curso": "Estimulación oportuna y detección del desarrollo",
-"ue": "PLAY LAND",
-"celular": "",
+"ue": "PLAYLAND",
+"celular": "76762200",
 "grupo": "Grupo 2",
-"compartido": false
+"compartido": false,
+"reciente": "2026-11-11 08:22"
 },
 {
 "nombre": "CINTHIA LLANOS CAMPOS",
