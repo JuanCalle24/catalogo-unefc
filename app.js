@@ -5,22 +5,76 @@
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const store = { get: k => { try { return localStorage.getItem(k) } catch { return null } }, set: (k, v) => { try { localStorage.setItem(k, v) } catch {} } };
 
-  const DATA = PARTICIPANTES.map((p, id) => ({
-    ...p, id,
-    faltan: [!p.ci && "C.I.", !p.celular && "celular", !p.ue && "unidad educativa"].filter(Boolean),
-    texto: norm([p.nombre, p.ci, p.celular, p.deposito, p.ue, p.curso, p.grupo].join(" "))
-  }));
-  const CURSOS = [...new Set(DATA.map(p => p.curso))];
+  const HOJA_CSV = ""; // URL CSV de la hoja publicada (Archivo > Compartir > Publicar en la web > Formato CSV)
+  let DATA = [], CURSOS = [], porCi = {}, personas = 0;
   const cls = c => "c" + (CURSOS.indexOf(c) + 1);
-  const corto = c => /^Desarrollo/.test(c) ? "Desarrollo de habilidades" : /^Estimulación/.test(c) ? "Estimulación oportuna" : "Dinamizando";
+  const corto = c => !c ? "Por confirmar" : /^Desarrollo/.test(c) ? "Desarrollo de habilidades" : /^Estimulación/.test(c) ? "Estimulación oportuna" : "Dinamizando";
+  function construir() {
+    DATA = PARTICIPANTES.map((p, id) => ({
+      ...p, id,
+      faltan: [!p.ci && "C.I.", !p.celular && "celular", !p.ue && "unidad educativa"].filter(Boolean),
+      texto: norm([p.nombre, p.ci, p.celular, p.deposito, p.ue, p.curso, p.grupo].join(" "))
+    }));
+    CURSOS = [...new Set(DATA.map(p => p.curso).filter(Boolean))];
+    porCi = DATA.reduce((m, p) => (p.ci && (m[p.ci] ||= []).push(p), m), {});
+    personas = new Set(DATA.map(p => p.ci || p.nombre)).size;
+  }
+  construir();
   const fecha = s => { const [d, h] = s.split(" "), [y, m, dd] = d.split("-"); return `${dd}/${m}/${y} ${h}`; };
   const iniciales = n => n.split(/\s+/).filter(w => w.length > 2).slice(0, 2).map(w => w[0]).join("").toUpperCase() || n[0];
   const titulo = s => s.toLowerCase().replace(/(^|\s)(\p{L})/gu, (_, a, b) => a + b.toUpperCase()).replace(/\b(De|Del|La|Las|Los|Y)\b/g, m => m.toLowerCase());
-  const porCi = DATA.reduce((m, p) => (p.ci && (m[p.ci] ||= []).push(p), m), {});
-  const personas = new Set(DATA.map(p => p.ci || p.nombre)).size;
-
   const S = { q: "", c: "", g: "", u: "", e: "", k: "nombre", d: 1 };
   let lista = [], ultimoFoco = null, t;
+
+  // ---------- Sincronización con la hoja de inscripciones ----------
+  const limpiar = v => String(v ?? "").replace(/\s+/g, " ").trim();
+  const ciDe = v => { const m = limpiar(v).match(/(\d{5,9})/); return m ? m[1] : ""; };
+  const ueDe = v => limpiar(String(v ?? "").replace(/^[\s"'\/]+|[\s"'\/]+$/g, "")).replace(/^(UNIDAD EDUCATIVA|U\.\s*E\.?)\s*/i, "").replace(/["']/g, "").trim().toUpperCase();
+  const tsDe = v => { const m = limpiar(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/); return m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")} ${m[4].padStart(2, "0")}:${m[5]}` : limpiar(v).slice(0, 16); };
+  function parsearCSV(texto) {
+    const filas = []; let f = [], celda = "", q = false;
+    const cerrar = () => { if (f.length || celda !== "") { f.push(celda); if (f.some(x => x !== "")) filas.push(f); f = []; celda = ""; } };
+    for (let i = 0; i < texto.length; i++) {
+      const ch = texto[i];
+      if (q) { if (ch === '"') { if (texto[i + 1] === '"') { celda += '"'; i++; } else q = false; } else celda += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === ",") { f.push(celda); celda = ""; }
+      else if (ch === "\n" || ch === "\r") { if (ch === "\r" && texto[i + 1] === "\n") i++; cerrar(); }
+      else celda += ch;
+    }
+    cerrar();
+    return filas;
+  }
+  function aplicarCSV(csv) {
+    const filas = parsearCSV(csv);
+    if (filas.length < 2) return { act: 0, nue: 0 };
+    const conocidas = new Set(PARTICIPANTES.map(p => p.ue).filter(Boolean));
+    const baseUe = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/"/g, "");
+    const unidad = u => { const b = baseUe(u); for (const k of conocidas) { const kb = baseUe(k); if (kb === b || kb.startsWith(b) || b.startsWith(kb)) return k; } return u; };
+    let act = 0, nue = 0;
+    for (const r of filas.slice(1)) {
+      if (!limpiar(r[0])) continue;
+      const c = ciDe(r[4]), cel = limpiar(r[5]).replace(/\D/g, ""), u = unidad(ueDe(r[6])), ts = tsDe(r[0]);
+      const nombre = limpiar([r[1], r[2], r[3]].filter(Boolean).join(" ")).toUpperCase();
+      const hits = c ? PARTICIPANTES.filter(p => p.ci === c) : [];
+      if (hits.length) { hits.forEach(p => { if (cel) p.celular = cel; if (u) p.ue = u; p.reciente = ts; }); act++; }
+      else { PARTICIPANTES.push({ nombre, ci: c, deposito: "", monto: null, curso: "", ue: u, celular: cel, grupo: "Sin grupo", compartido: false, reciente: ts }); nue++; }
+    }
+    return { act, nue };
+  }
+  async function sincronizarHoja(manual) {
+    if (!HOJA_CSV) { if (manual) toast("Sin hoja vinculada todavía"); return; }
+    const btn = $("sinc"); btn && (btn.disabled = true);
+    try {
+      const r = await fetch(HOJA_CSV, { cache: "no-store" });
+      if (!r.ok) throw new Error(r.status);
+      const { act, nue } = aplicarCSV(await r.text());
+      construir(); llenarSelects(); sincronizar(); filtrar();
+      store.set("sinc", new Date().toISOString().slice(0, 16).replace("T", " "));
+      toast(act + nue ? `Hoja leída: ${act} confirmados · ${nue} nuevos` : "Hoja leída: sin cambios");
+    } catch { if (manual) toast("No se pudo leer la hoja"); }
+    btn && (btn.disabled = false);
+  }
 
   // ---------- Estado en la URL (compartible) ----------
   const guardar = () => {
@@ -134,6 +188,7 @@
   document.querySelectorAll("th").forEach(th => th.onclick = () => { S.d = S.k === th.dataset.k ? -S.d : 1; S.k = th.dataset.k; aplicar(); });
   $("tema").onclick = () => { const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = n; store.set("tema", n); };
   $("imprimir").onclick = () => print();
+  $("sinc").onclick = () => sincronizarHoja(true);
   $("csv").onclick = () => {
     const cols = ["nombre", "ci", "curso", "grupo", "ue", "celular", "deposito", "monto"], q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
     const csv = [cols.join(",")].concat(lista.map(p => cols.map(c => q(p[c])).join(","))).join("\r\n");
@@ -142,7 +197,11 @@
   };
 
   // ---------- Inicio ----------
-  opciones($("g"), "Todos los grupos", [...new Set(DATA.map(p => p.grupo))].sort());
-  opciones($("u"), "Todas las unidades", [...new Set(DATA.map(p => p.ue).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es")));
+  function llenarSelects() {
+    opciones($("g"), "Todos los grupos", [...new Set(DATA.map(p => p.grupo))].sort());
+    opciones($("u"), "Todas las unidades", [...new Set(DATA.map(p => p.ue).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es")));
+  }
+  llenarSelects();
   leer(); pintarStats(); aplicar();
+  sincronizarHoja(false);
 })();
