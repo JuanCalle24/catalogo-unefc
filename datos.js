@@ -1417,9 +1417,10 @@ const PARTICIPANTES = [
 "monto": 150,
 "curso": "Estimulación oportuna y detección del desarrollo",
 "ue": "PLAY LAND",
-"celular": "",
+"celular": "79600758",
 "grupo": "Grupo 2",
-"compartido": false
+"compartido": false,
+"reciente": "2026-11-11 08:29"
 },
 {
 "nombre": "KATIA ESPADA SANDOVAL",
@@ -1427,7 +1428,7 @@ const PARTICIPANTES = [
 "deposito": "79584349",
 "monto": 150,
 "curso": "Estimulación oportuna y detección del desarrollo",
-"ue": "PLAYLAND",
+"ue": "PLAY LAND",
 "celular": "76762200",
 "grupo": "Grupo 2",
 "compartido": false,

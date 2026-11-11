@@ -50,7 +50,7 @@
     if (filas.length < 2) return { act: 0, nue: 0 };
     const conocidas = new Set(PARTICIPANTES.map(p => p.ue).filter(Boolean));
     const baseUe = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/"/g, "");
-    const unidad = u => { const b = baseUe(u); for (const k of conocidas) { const kb = baseUe(k); if (kb === b || kb.startsWith(b) || b.startsWith(kb)) return k; } return u; };
+    const unidad = u => { const b = baseUe(u), bs = b.replace(/\s+/g, ""); for (const k of conocidas) { const kb = baseUe(k); if (kb === b || kb.startsWith(b) || b.startsWith(kb) || kb.replace(/\s+/g, "") === bs) return k; } return u; };
     let act = 0, nue = 0;
     for (const r of filas.slice(1)) {
       if (!limpiar(r[0])) continue;
@@ -69,7 +69,7 @@
       const r = await fetch(HOJA_CSV, { cache: "no-store" });
       if (!r.ok) throw new Error(r.status);
       const { act, nue } = aplicarCSV(await r.text());
-      construir(); llenarSelects(); sincronizar(); filtrar();
+      construir(); pintarStats(); llenarSelects(); sincronizar(); filtrar();
       store.set("sinc", new Date().toISOString().slice(0, 16).replace("T", " "));
       toast(act + nue ? `Hoja leída: ${act} confirmados · ${nue} nuevos` : "Hoja leída: sin cambios");
     } catch { if (manual) toast("No se pudo leer la hoja"); }
