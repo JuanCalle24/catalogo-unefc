@@ -1516,9 +1516,10 @@ const PARTICIPANTES = [
 "monto": 150,
 "curso": "Estimulación oportuna y detección del desarrollo",
 "ue": "MARISCAL SUCRE",
-"celular": "",
+"celular": "71272854",
 "grupo": "Grupo 2",
-"compartido": false
+"compartido": false,
+"reciente": "2026-11-10 18:06"
 },
 {
 "nombre": "MADISON MIREYA ALCON CLAVIJO",
@@ -1527,9 +1528,10 @@ const PARTICIPANTES = [
 "monto": 150,
 "curso": "Estimulación oportuna y detección del desarrollo",
 "ue": "MARISCAL SUCRE",
-"celular": "",
+"celular": "72088075",
 "grupo": "Grupo 2",
-"compartido": false
+"compartido": false,
+"reciente": "2026-11-10 18:11"
 },
 {
 "nombre": "NICOL THALIA FRANCO VALENCIA",
